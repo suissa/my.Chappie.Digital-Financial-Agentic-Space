@@ -1,0 +1,11 @@
+{
+  "name": "my-chappie-digital-financial-mcps",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:coverage": "node --experimental-test-coverage --test tests/*.test.js"
+  }
+}

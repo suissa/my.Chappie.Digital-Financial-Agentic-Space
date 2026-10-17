@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "notice": "Upstream candidates only; not vendored or security-audited yet.",
+  "servers": [
+    {
+      "id": "efi",
+      "upstream": "https://github.com/efipay/mcp-server-efi",
+      "status": "official-upstream-found",
+      "transport": "stdio",
+      "scope": "Efí API operations; inspect tool catalog and licensing before pinning"
+    },
+    {
+      "id": "mercadopago",
+      "upstream": "https://github.com/mercadolibre/mercadopago-mcp-server",
+      "status": "official-remote-server-found",
+      "transport": "streamable-http",
+      "endpoint": "https://mcp.mercadopago.com/mcp",
+      "scope": "Official MCP; verify payment execution tools separately"
+    },
+    {
+      "id": "mercadopago-demo",
+      "upstream": "https://github.com/mercadolibre/demo-mercadopago-mcp-server",
+      "status": "official-demo-found",
+      "scope": "Demo server; inspect license before copying"
+    },
+    {
+      "id": "asaas",
+      "upstream": "https://github.com/theYahia/asaas-mcp",
+      "status": "community-candidate",
+      "scope": "Payments, Pix and billing; review security/license"
+    },
+    {
+      "id": "pagarme",
+      "upstream": "https://github.com/mcp-dir/pagarme-mcp",
+      "status": "community-hosted-wrapper-candidate",
+      "scope": "Hosted MCP wrapper project; do not confuse wrapper docs with source server"
+    },
+    {
+      "id": "infinitepay-openfinance",
+      "upstream": "https://github.com/mcp-dir/infinitepay-mcp",
+      "status": "found-but-not-payment-checkout",
+      "scope": "Read-only Open Finance data; not a payment-link adapter"
+    },
+    {
+      "id": "whatsapp-cloud",
+      "upstream": "https://github.com/FredShred7/whatsapp-mcp-server",
+      "status": "community-candidate",
+      "scope": "Meta WhatsApp Cloud API; review license, maintenance and webhook validation"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "Asaas Payment Links", "version": "2026-10-17", "description": "Contract distilled from the official Asaas payment-link reference; source URL is recorded below."},
+  "externalDocs": {"url": "https://docs.asaas.com/reference/criar-um-link-de-pagamentos"},
+  "servers": [{"url": "https://api-sandbox.asaas.com"}],
+  "paths": {
+    "/v3/paymentLinks": {
+      "post": {
+        "operationId": "asaasCreatePaymentLink",
+        "parameters": [{"name":"access_token","in":"header","required":true,"schema":{"type":"string"}},{"name":"User-Agent","in":"header","required":true,"schema":{"type":"string","minLength":1}}],
+        "requestBody": {"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","billingType","chargeType"],"properties":{"name":{"type":"string"},"description":{"type":"string"},"endDate":{"type":"string"},"value":{"type":"number"},"billingType":{"type":"string","enum":["UNDEFINED","BOLETO","CREDIT_CARD","PIX"]},"chargeType":{"type":"string","enum":["DETACHED","RECURRENT","INSTALLMENT"]},"dueDateLimitDays":{"type":"integer","minimum":0},"subscriptionCycle":{"type":"string","enum":["WEEKLY","BIWEEKLY","MONTHLY","BIMONTHLY","QUARTERLY","SEMIANNUALLY","YEARLY"]},"maxInstallmentCount":{"type":"integer","minimum":1},"externalReference":{"type":"string"},"notificationEnabled":{"type":"boolean"},"callback":{"type":"object"},"isAddressRequired":{"type":"boolean"}},"additionalProperties":false}}}},
+        "responses":{"200":{"description":"Ok"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"}}
+      }
+    },
+    "/v3/paymentLinks/{id}": {
+      "get":{"operationId":"asaasGetPaymentLink","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","minLength":1}},{"name":"access_token","in":"header","required":true,"schema":{"type":"string"}},{"name":"User-Agent","in":"header","required":true,"schema":{"type":"string","minLength":1}}],"responses":{"200":{"description":"Ok"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"},"403":{"description":"Forbidden"},"404":{"description":"Not found"}}},
+      "put":{"operationId":"asaasUpdatePaymentLink","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","minLength":1}},{"name":"access_token","in":"header","required":true,"schema":{"type":"string"}},{"name":"User-Agent","in":"header","required":true,"schema":{"type":"string","minLength":1}}],"requestBody":{"content":{"application/json":{"schema":{"type":"object"}}}},"responses":{"200":{"description":"Ok"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"},"404":{"description":"Not found"}}}
+    },
+    "/v3/paymentLinks/{id}/restore": {"post":{"operationId":"asaasRestorePaymentLink","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","minLength":1}},{"name":"access_token","in":"header","required":true,"schema":{"type":"string"}},{"name":"User-Agent","in":"header","required":true,"schema":{"type":"string","minLength":1}}],"responses":{"200":{"description":"Ok"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"},"404":{"description":"Not found"}}}},
+    "/v3/paymentLinks/{id}/images": {"get":{"operationId":"asaasListPaymentLinkImages","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","minLength":1}},{"name":"access_token","in":"header","required":true,"schema":{"type":"string"}},{"name":"User-Agent","in":"header","required":true,"schema":{"type":"string","minLength":1}}],"responses":{"200":{"description":"Ok"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"},"403":{"description":"Forbidden"},"404":{"description":"Not found"}}}
+  }
+}

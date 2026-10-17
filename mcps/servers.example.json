@@ -1,0 +1,27 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/2025-06-18/server.json",
+  "_comment": "Example connection catalog only. Confirm package names, versions, permissions and licenses before enabling. Do not place secrets here.",
+  "mcpServers": {
+    "mercadopago-official": {
+      "url": "https://mcp.mercadopago.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MERCADO_PAGO_ACCESS_TOKEN}"
+      }
+    },
+    "efi-community-or-official-package": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-efi"],
+      "env": {
+        "EFI_CLIENT_ID": "${EFI_CLIENT_ID}",
+        "EFI_CLIENT_SECRET": "${EFI_CLIENT_SECRET}"
+      }
+    },
+    "asaas-community": {
+      "command": "npx",
+      "args": ["-y", "@theyahia/asaas-mcp"],
+      "env": {
+        "ASAAS_API_KEY": "${ASAAS_API_KEY}"
+      }
+    }
+  }
+}
