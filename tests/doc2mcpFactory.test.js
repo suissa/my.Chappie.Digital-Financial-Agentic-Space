@@ -8,16 +8,14 @@ const spec = {
   paths: {
     '/payments': {
       post: {
-        operationId: 'createPayment',
-        summary: 'Create a payment',
+        operationId: 'createPayment', summary: 'Create a payment',
         requestBody: { required: true, content: { 'application/json': { schema: {
           type: 'object', required: ['amount', 'currency'], additionalProperties: false,
           properties: { amount: { type: 'number', minimum: 0.01 }, currency: { type: 'string', enum: ['BRL'] } }
         } } } },
-        responses: { '201': { description: 'Created' }, '400': { description: 'Invalid input' } }
-      },
-      get: { operationId: 'listPayments', responses: { '200': { description: 'OK' } }
-      }
+        responses: { '201': { description: 'Created' }, '400': { description: 'Invalid input' }
+      } },
+      get: { operationId: 'listPayments', responses: { '200': { description: 'OK' } } }
     }
   }
 };
@@ -25,8 +23,7 @@ const spec = {
 test('generates one stable tool for each HTTP operation', () => {
   const tools = createToolsFromOpenApi(spec);
   assert.deepEqual(tools.map(t => t.name), ['createpayment', 'listpayments']);
-  assert.equal(tools[0].method, 'POST');
-  assert.equal(tools[0].path, '/payments');
+  assert.equal(tools[0].method, 'POST'); assert.equal(tools[0].path, '/payments');
 });
 
 test('rejects non-OpenAPI 3 and missing paths', () => {
@@ -57,55 +54,21 @@ test('fails explicitly on unresolved schema references', () => {
 
 test('exports route manifest including documented response codes', () => {
   const manifest = createRouteManifest(spec);
-  assert.equal(manifest.length, 2);
-  assert.deepEqual(manifest[0].documentedResponses, ['201', '400']);
+  assert.equal(manifest.length, 2); assert.deepEqual(manifest[0].documentedResponses, ['201', '400']);
 });
 
 test('executes a documented REST operation using an injected fake transport', async () => {
-  const operation = createToolsFromOpenApi(spec)[0];
-  const seen = [];
-  const fakeFetch = async (url, init) => {
-    seen.push({ url: String(url), method: init.method, body: JSON.parse(init.body) });
-    return new Response(JSON.stringify({ id: 'sandbox_123', status: 'pending' }), {
-      status: 201, headers: { 'content-type': 'application/json' }
-    });
-  };
-  const result = await executeRestOperation({
-    baseUrl: 'https://sandbox.example/api',
-    operation,
-    body: { amount: 10, currency: 'BRL' },
-    headers: { authorization: 'Bearer test-only-token' },
-    fetchImpl: fakeFetch
-  });
-  assert.equal(result.status, 201);
-  assert.equal(result.body.status, 'pending');
-  assert.equal(seen[0].method, 'POST');
-  assert.equal(seen[0].url, 'https://sandbox.example/payments');
-  assert.deepEqual(seen[0].body, { amount: 10, currency: 'BRL' });
+  const operation = createToolsFromOpenApi(spec)[0]; const seen = [];
+  const fakeFetch = async (url, init) => { seen.push({ url: String(url), method: init.method, body: JSON.parse(init.body) }); return new Response(JSON.stringify({ id: 'sandbox_123', status: 'pending' }), { status: 201, headers: { 'content-type': 'application/json' } }); };
+  const result = await executeRestOperation({ baseUrl: 'https://sandbox.example/api', operation, body: { amount: 10, currency: 'BRL' }, headers: { authorization: 'Bearer test-only-token' }, fetchImpl: fakeFetch });
+  assert.equal(result.status, 201); assert.equal(result.body.status, 'pending'); assert.equal(seen[0].method, 'POST'); assert.equal(seen[0].url, 'https://sandbox.example/api/payments'); assert.deepEqual(seen[0].body, { amount: 10, currency: 'BRL' });
 });
 
 test('does not dispatch invalid requests and reports provider HTTP errors without treating them as success', async () => {
-  const operation = createToolsFromOpenApi(spec)[0];
-  let calls = 0;
-  const fakeFetch = async () => {
-    calls++;
-    return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 400 });
-  };
-  await assert.rejects(() => executeRestOperation({
-    baseUrl: 'https://sandbox.example',
-    operation,
-    body: { amount: 'bad', currency: 'BRL' },
-    fetchImpl: fakeFetch
-  }), /Expected number/);
+  const operation = createToolsFromOpenApi(spec)[0]; let calls = 0;
+  const fakeFetch = async () => { calls++; return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 400 }); };
+  await assert.rejects(() => executeRestOperation({ baseUrl: 'https://sandbox.example', operation, body: { amount: 'bad', currency: 'BRL' }, fetchImpl: fakeFetch }), /Expected number/);
   assert.equal(calls, 0);
-  const result = await executeRestOperation({
-    baseUrl: 'https://sandbox.example',
-    operation,
-    body: { amount: 10, currency: 'BRL' },
-    fetchImpl: fakeFetch
-  });
-  assert.equal(result.status, 400);
-  assert.equal(result.ok, false);
-  assert.equal(result.body.error, 'invalid_request');
-  assert.equal(calls, 1);
+  const result = await executeRestOperation({ baseUrl: 'https://sandbox.example', operation, body: { amount: 10, currency: 'BRL' }, fetchImpl: fakeFetch });
+  assert.equal(result.status, 400); assert.equal(result.ok, false); assert.equal(result.body.error, 'invalid_request'); assert.equal(calls, 1);
 });
