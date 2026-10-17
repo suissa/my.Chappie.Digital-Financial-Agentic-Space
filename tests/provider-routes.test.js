@@ -1,70 +1,147 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createToolsFromOpenApi, validateRouteInput } from '../doc2mcpFactory/index.js';
+import {
+  createToolsFromOpenApi,
+  createRouteManifest,
+  executeRestOperation,
+  validateRouteInput
+} from '../doc2mcpFactory/index.js';
 
-// Each route in a provider spec is discovered and contract-checked. The injected fetch
-// is a deterministic integration boundary: CI must never send real payment requests.
-const providerSpecs = [
-  { name: 'asaas', spec: { openapi: '3.0.3', paths: {
-    '/v3/paymentLinks': { post: { operationId: 'asaasCreatePaymentLink', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['name'], properties: { name: { type: 'string', minLength: 1 } } } } } }, responses: { '200': {}, '400': {} } } },
-    '/v3/payments/{id}': { get: { operationId: 'asaasGetPayment', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': {}, '404': {} } } }
-  } } },
-  { name: 'efi', spec: { openapi: '3.0.3', paths: {
-    '/v1/charge/one-step': { post: { operationId: 'efiCreateCharge', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['items'], properties: { items: { type: 'array', minItems: 1 } } } } } }, responses: { '200': {}, '400': {} } } },
-    '/v1/charge/{id}': { get: { operationId: 'efiGetCharge', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': {}, '404': {} } } }
-  } } },
-  { name: 'pagarme', spec: { openapi: '3.0.3', paths: {
-    '/core/v5/paymentlinks': { post: { operationId: 'pagarmeCreatePaymentLink', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['type'], properties: { type: { type: 'string' } } } } } }, responses: { '200': {}, '400': {} } } },
-    '/core/v5/paymentlinks/{id}': { get: { operationId: 'pagarmeGetPaymentLink', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': {}, '404': {} } } }
-  } } },
-  { name: 'mercadopago', spec: { openapi: '3.0.3', paths: {
-    '/checkout/preferences': { post: { operationId: 'mpCreatePreference', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['items'], properties: { items: { type: 'array', minItems: 1 } } } } } }, responses: { '201': {}, '400': {} } } },
-    '/v1/payments/{id}': { get: { operationId: 'mpGetPayment', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': {}, '404': {} } } }
-  } } },
-  { name: 'pagbank', spec: { openapi: '3.0.3', paths: {
-    '/orders': { post: { operationId: 'pagbankCreateOrder', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['items'], properties: { items: { type: 'array', minItems: 1 } } } } } }, responses: { '201': {}, '400': {} } } },
-    '/orders/{id}': { get: { operationId: 'pagbankGetOrder', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { '200': {}, '404': {} } } }
-  } } },
-  { name: 'infinitepay', spec: { openapi: '3.0.3', paths: {
-    '/invoices/public/checkout/links': { post: { operationId: 'infinitepayCreateCheckoutLink', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['handle', 'redirect_url'], properties: { handle: { type: 'string' }, redirect_url: { type: 'string' } } } } } }, responses: { '200': {}, '400': {} } } }
-  } } },
-  { name: 'cora', spec: { openapi: '3.0.3', paths: {
-    '/v2/invoices/': { post: { operationId: 'coraCreateInvoice', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['code'], properties: { code: { type: 'string' } } } } } }, responses: { '201': {}, '400': {} } } }
-  } } },
-  { name: 'btg', spec: { openapi: '3.0.3', paths: {
-    '/payments': { post: { operationId: 'btgCreatePayment', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['amount'], properties: { amount: { type: 'number', minimum: 0.01 } } } } } }, responses: { '200': {}, '400': {} } } }
-  } } },
-  { name: 'whatsapp-cloud', spec: { openapi: '3.0.3', paths: {
-    '/{phone_number_id}/messages': { post: { operationId: 'whatsappSendMessage', requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['messaging_product', 'to', 'type'], properties: { messaging_product: { type: 'string', enum: ['whatsapp'] }, to: { type: 'string' }, type: { type: 'string' } } } } } }, responses: { '200': {}, '400': {} } } }
-  } } }
-];
+// These are synthetic OpenAPI fixtures used to verify the factory and transport.
+// They are deliberately NOT claimed to be provider-verified API contracts.
+const fixture = {
+  openapi: '3.0.3',
+  servers: [{ url: 'https://sandbox.example/v1' }],
+  paths: {
+    '/payments/{paymentId}': {
+      get: {
+        operationId: 'getPayment',
+        parameters: [
+          { name: 'paymentId', in: 'path', required: true, schema: { type: 'string', minLength: 1 } },
+          { name: 'expand', in: 'query', required: false, schema: { type: 'string' } }
+        ],
+        responses: { '200': { description: 'Found' }, '404': { description: 'Not found' } }
+      }
+    },
+    '/payments': {
+      post: {
+        operationId: 'createPayment',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['amount', 'currency'],
+                additionalProperties: false,
+                properties: {
+                  amount: { type: 'number', minimum: 0.01 },
+                  currency: { type: 'string', enum: ['BRL'] },
+                  description: { type: 'string', maxLength: 140 }
+                }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Created' }, '400': { description: 'Invalid input' } }
+      }
+    }
+  }
+};
 
-for (const provider of providerSpecs) {
-  test(`${provider.name}: every declared REST operation is discoverable and has response contracts`, () => {
-    const routes = createToolsFromOpenApi(provider.spec);
-    assert.ok(routes.length > 0);
-    for (const route of routes) {
-      assert.ok(route.path.startsWith('/'));
-      assert.ok(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(route.method));
-      assert.ok(Object.keys(route.responses).length > 0, `${route.name} must document at least one response`);
+test('factory discovers every supported HTTP operation and response contract', () => {
+  const tools = createToolsFromOpenApi(fixture);
+  assert.equal(tools.length, 2);
+  assert.deepEqual(tools.map(({ method, path }) => [method, path]), [
+    ['GET', '/payments/{paymentId}'],
+    ['POST', '/payments']
+  ]);
+  assert.ok(tools.every(tool => Object.keys(tool.responses).length > 0));
+  assert.deepEqual(createRouteManifest(fixture).map(route => route.documentedResponses), [
+    ['200', '404'],
+    ['201', '400']
+  ]);
+});
+
+test('input validation rejects missing, out-of-range, enum and unknown properties', () => {
+  const schema = fixture.paths['/payments'].post.requestBody.content['application/json'].schema;
+  assert.equal(validateRouteInput(schema, { amount: 10, currency: 'BRL' }), true);
+  assert.throws(() => validateRouteInput(schema, { amount: 10 }), /Missing required property/);
+  assert.throws(() => validateRouteInput(schema, { amount: 0, currency: 'BRL' }), /below minimum/);
+  assert.throws(() => validateRouteInput(schema, { amount: 10, currency: 'USD' }), /not in enum/);
+  assert.throws(() => validateRouteInput(schema, { amount: 10, currency: 'BRL', admin: true }), /Unknown property/);
+});
+
+test('REST executor substitutes and encodes path parameters and query values', async () => {
+  let captured;
+  const operation = createToolsFromOpenApi(fixture).find(item => item.method === 'GET');
+  const result = await executeRestOperation({
+    baseUrl: 'https://sandbox.example/v1',
+    operation,
+    pathParams: { paymentId: 'id/with space' },
+    query: { expand: 'customer details' },
+    headers: { authorization: 'Bearer sandbox-token' },
+    fetchImpl: async (url, init) => {
+      captured = { url: String(url), init };
+      return new Response(JSON.stringify({ id: 'id/with space', status: 'pending' }), {
+        status: 200, headers: { 'content-type': 'application/json' }
+      });
     }
   });
-}
+  assert.equal(captured.url, 'https://sandbox.example/v1/payments/id%2Fwith%20space?expand=customer+details');
+  assert.equal(captured.init.method, 'GET');
+  assert.equal(captured.init.headers.get('authorization'), 'Bearer sandbox-token');
+  assert.equal(result.status, 200);
+  assert.equal(result.ok, true);
+  assert.equal(result.body.status, 'pending');
+});
 
-// Proves the transport seam works without real credentials, live API calls or money movement.
-test('REST integration harness can exercise success and provider error responses with a fake fetch', async () => {
-  const calls = [];
-  const fakeFetch = async (url, init) => {
-    calls.push({ url, method: init.method });
-    if (url.endsWith('/payments')) return new Response(JSON.stringify({ id: 'sandbox_123', status: 'pending' }), { status: 201, headers: { 'content-type': 'application/json' } });
-    return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 400, headers: { 'content-type': 'application/json' } });
+test('REST executor validates JSON body before transport and serializes valid body', async () => {
+  const operation = createToolsFromOpenApi(fixture).find(item => item.method === 'POST');
+  let calls = 0;
+  const fetchImpl = async (_url, init) => {
+    calls += 1;
+    assert.equal(init.headers.get('content-type'), 'application/json');
+    assert.deepEqual(JSON.parse(init.body), { amount: 25.5, currency: 'BRL' });
+    return new Response(JSON.stringify({ id: 'sandbox_payment', status: 'pending' }), {
+      status: 201, headers: { 'content-type': 'application/json' }
+    });
   };
-  const success = await fakeFetch('https://sandbox.example/payments', { method: 'POST' });
-  assert.equal(success.status, 201);
-  assert.equal((await success.json()).status, 'pending');
-  const failure = await fakeFetch('https://sandbox.example/payments?bad=1', { method: 'POST' });
-  assert.equal(failure.status, 400);
-  assert.equal((await failure.json()).error, 'invalid_request');
-  assert.equal(calls.length, 2);
-  assert.equal(validateRouteInput({ type: 'object', required: ['amount'], properties: { amount: { type: 'number', minimum: 0.01 } } }, { amount: 1 }), true);
+  await assert.rejects(
+    executeRestOperation({ baseUrl: 'https://sandbox.example/v1', operation, body: { amount: 0, currency: 'BRL' }, fetchImpl }),
+    /below minimum/
+  );
+  assert.equal(calls, 0, 'invalid input must fail before the network boundary');
+
+  const result = await executeRestOperation({
+    baseUrl: 'https://sandbox.example/v1', operation,
+    body: { amount: 25.5, currency: 'BRL' }, fetchImpl
+  });
+  assert.equal(result.status, 201);
+  assert.equal(result.body.id, 'sandbox_payment');
+  assert.equal(calls, 1);
+});
+
+test('REST executor preserves non-JSON error bodies and reports provider status', async () => {
+  const operation = createToolsFromOpenApi(fixture).find(item => item.method === 'GET');
+  const result = await executeRestOperation({
+    baseUrl: 'https://sandbox.example/v1', operation, pathParams: { paymentId: 'missing' },
+    fetchImpl: async () => new Response('upstream unavailable', { status: 502 })
+  });
+  assert.equal(result.status, 502);
+  assert.equal(result.ok, false);
+  assert.equal(result.body, 'upstream unavailable');
+});
+
+test('REST executor fails closed for missing path parameters, required body and unresolved references', async () => {
+  const [getOperation, postOperation] = createToolsFromOpenApi(fixture);
+  await assert.rejects(
+    executeRestOperation({ baseUrl: 'https://sandbox.example/v1', operation: getOperation }),
+    /Missing path parameter/
+  );
+  await assert.rejects(
+    executeRestOperation({ baseUrl: 'https://sandbox.example/v1', operation: postOperation }),
+    /Request body is required/
+  );
+  assert.throws(() => validateRouteInput({ $ref: '#/components/schemas/Payment' }, {}), /Unresolved schema reference/);
 });
