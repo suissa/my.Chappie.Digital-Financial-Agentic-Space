@@ -115,9 +115,6 @@ export async function executeRestOperation({ baseUrl, operation, pathParams = {}
   const requestHeaders = new Headers(headers);
   const pathValues = { ...pathParams };
   const queryValues = { ...query };
-  const documentedHeaderNames = new Set(
-    (operation.parameters || []).filter(parameter => parameter.in === 'header').map(parameter => parameter.name.toLowerCase())
-  );
   const headerValues = new Map(Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]));
 
   for (const parameter of operation.parameters || []) {
