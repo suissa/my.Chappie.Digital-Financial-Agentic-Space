@@ -93,3 +93,45 @@ export function createRouteManifest(document) {
     documentedResponses: Object.keys(responses).sort()
   }));
 }
+
+/** Execute one generated REST operation. Credentials are supplied by the caller in headers.
+ * This function is intentionally transport-injected so tests cannot accidentally charge real accounts.
+ */
+export async function executeRestOperation({ baseUrl, operation, pathParams = {}, query = {}, headers = {}, body, fetchImpl = fetch }) {
+  assert(typeof baseUrl === 'string' && /^https?:\/\//.test(baseUrl), 'baseUrl must be an absolute HTTP(S) URL');
+  assert(operation && operation.path && operation.method, 'operation descriptor is required');
+  let path = operation.path;
+  for (const match of path.matchAll(/\{([^}]+)\}/g)) {
+    const key = match[1];
+    assert(Object.hasOwn(pathParams, key), `Missing path parameter: ${key}`);
+    path = path.replace(`{${key}}`, encodeURIComponent(String(pathParams[key])));
+  }
+  assert(!/[{}]/.test(path), `Unresolved path parameter in ${path}`);
+  const url = new URL(path, baseUrl.endsWith('/') ? baseUrl : baseUrl + '/');
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
+  }
+
+  const requestHeaders = new Headers(headers);
+  const init = { method: operation.method.toUpperCase(), headers: requestHeaders };
+  if (body !== undefined) {
+    const content = operation.requestBody?.content || {};
+    const mediaType = Object.keys(content).find(type => type.toLowerCase() === 'application/json');
+    assert(mediaType, 'JSON body supplied but operation has no application/json request schema');
+    const bodySchema = content[mediaType]?.schema;
+    if (bodySchema) validateRouteInput(bodySchema, body);
+    if (operation.requestBody.required) assert(body !== undefined, 'Request body is required');
+    requestHeaders.set('content-type', 'application/json');
+    init.body = JSON.stringify(body);
+  } else {
+    assert(!operation.requestBody?.required, 'Request body is required');
+  }
+
+  const response = await fetchImpl(url, init);
+  const raw = await response.text();
+  let parsed = raw;
+  if (raw) {
+    try { parsed = JSON.parse(raw); } catch { /* preserve non-JSON provider error body */ }
+  }
+  return { status: response.status, ok: response.ok, body: parsed };
+}
