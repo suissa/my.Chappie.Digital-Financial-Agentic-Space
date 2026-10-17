@@ -1,35 +1,32 @@
 # API documentation and MCP inventory
 
-Scope is payment-link/Pix checkout sent to the customer through WhatsApp, not physical POS control. API contracts change; treat vendor documentation as authoritative.
+Scope: payment links/Pix checkout sent to customers through WhatsApp, plus the WhatsApp Cloud API. Official provider references remain authoritative; this repository must not invent routes or infer support from an MCP's existence.
 
-| Provider | Official REST documentation | MCP found in initial research | Repository/endpoint | Status |
-|---|---|---|---|---|
-| Asaas | https://docs.asaas.com/reference/criar-um-link-de-pagamentos | Community MCP | https://github.com/theYahia/asaas-mcp | Found; review license, coverage and security before vendoring |
-| Efí Bank | https://dev.efipay.com.br/docs/api-cobrancas/link-de-pagamento/ | Official MCP | https://github.com/efipay/mcp-server-efi | Found; official, stdio; inspect API coverage before selecting tools |
-| Pagar.me | https://docs.pagar.me/reference/criar-link | Community/hosted MCP project | https://github.com/mcp-dir/pagarme-mcp | Found; repository describes hosted service/wrapper; verify licensing and endpoint coverage |
-| Mercado Pago | https://www.mercadopago.com.br/developers/pt/docs/getting-started | Official remote MCP + demo | https://github.com/mercadolibre/mercadopago-mcp-server and https://github.com/mercadolibre/demo-mercadopago-mcp-server | Found; official remote endpoint https://mcp.mercadopago.com/mcp |
-| PagBank | https://developer.pagbank.com.br/v1/reference/introducao | No first-party MCP confirmed in initial search | — | MCP absence not established; further verification required |
-| InfinitePay | https://www.infinitepay.io/desenvolvedores | A community InfinitePay MCP was found for Open Finance read-only data, not payment-link creation | https://github.com/mcp-dir/infinitepay-mcp | Not equivalent to payment API MCP; REST adapter may be needed |
-| Cora | https://developers.cora.com.br/ | No first-party payment MCP confirmed in initial search | — | MCP absence not established; further verification required |
-| BTG Pactual | https://empresas.btgpactual.com/developers/ | No first-party payment MCP confirmed in initial search | — | MCP absence not established; further verification required |
-| Meta WhatsApp Cloud API | https://developers.facebook.com/docs/whatsapp/cloud-api/ | Community implementations found; not an official Meta MCP confirmed | https://github.com/FredShred7/whatsapp-mcp-server | Inspect license, maintained status and exact Cloud API coverage |
+| Provider | Official documentation | MCP candidate | Local contract status |
+|---|---|---|---|
+| Asaas | https://docs.asaas.com/reference/criar-um-link-de-pagamentos | https://github.com/theYahia/asaas-mcp | No provider-verified OpenAPI contract yet |
+| Efí Bank | https://dev.efipay.com.br/docs/api-cobrancas/link-de-pagamento/ | https://github.com/efipay/mcp-server-efi (official) | No provider-verified OpenAPI contract yet |
+| Pagar.me | https://docs.pagar.me/reference/criar-link | https://github.com/mcp-dir/pagarme-mcp (candidate) | No provider-verified OpenAPI contract yet |
+| Mercado Pago | https://www.mercadopago.com.br/developers/pt/docs/getting-started | https://github.com/mercadolibre/mercadopago-mcp-server (official remote MCP) | No provider-verified payment-execution contract yet |
+| PagBank | https://developer.pagbank.com.br/v1/reference/introducao | No suitable MCP confirmed | No provider-verified OpenAPI contract yet |
+| InfinitePay | https://www.infinitepay.io/desenvolvedores | https://github.com/mcp-dir/infinitepay-mcp (Open Finance candidate) | Candidate is not evidence of checkout support |
+| Cora | https://developers.cora.com.br/ | No suitable MCP confirmed | No provider-verified OpenAPI contract yet |
+| BTG Pactual | https://empresas.btgpactual.com/developers/ | No suitable MCP confirmed | No provider-verified OpenAPI contract yet |
+| Meta WhatsApp Cloud API | https://developers.facebook.com/docs/whatsapp/cloud-api/ | https://github.com/FredShred7/whatsapp-mcp-server (community) | No provider-verified OpenAPI contract yet |
 
-## Documentation policy
+## Documentation workflow
 
-This index records official documentation URLs and research findings; it does not reproduce vendor documentation wholesale. For each provider, store a concise local integration guide with source URLs, retrieval date, auth method, relevant endpoints, request/response schema references, rate limits, webhook signature verification, idempotency behavior and sandbox instructions. Preserve vendor copyright and licenses.
+For every provider, capture exact method/path, auth, request/response schema, error codes, pagination, rate limits, idempotency, webhook signature validation and sandbox instructions. Keep source links and review dates next to each contract. See [provider research](provider-research.md), [route coverage](route-coverage.md) and [MCP upstream setup](../../mcps/UPSTREAMS.md).
 
 ## Required route groups
 
-For payment providers, implement only operations actually documented and enabled by credentials:
+For payment providers, enable only operations actually documented and available to the account:
 - create/retrieve/list payment or payment link;
 - retrieve payment status;
-- refund/cancel where API supports it;
-- webhook verification and event processing;
-- customer creation/retrieval only where required by checkout flow.
+- refund/cancel where supported;
+- verify webhooks and process events idempotently;
+- customer operations only when required by checkout.
 
-For Meta WhatsApp Cloud API:
-- send text/template messages and media as needed;
-- validate inbound webhook challenge and verify webhook signature;
-- parse delivery/read/status events.
+For WhatsApp Cloud API, test sending text/templates/media as needed, inbound webhook challenge validation, signature verification, and delivery/read/status events.
 
-Never fabricate an endpoint or normalize provider-specific request fields without a documented mapping. Unknown or unsupported routes must be marked unsupported, not treated as passing tests.
+A synthetic test fixture proves only that the generic factory works. It must never be counted as provider route coverage.
