@@ -4,23 +4,23 @@ WhatsApp-first payment integrations for My.Chappie.Digital. The customer receive
 
 ## Repository layout
 
-- `mcps/`: MCP implementations or upstream references for providers that already have one. Keep upstream license and attribution; do not silently relicense copied code.
-- `docs/apis/`: official provider API documentation, coverage status, auth and webhook notes.
-- `doc2mcpFactory/`: REST/OpenAPI contract loader and MCP-tool descriptor factory.
-- `tests/`: deterministic route-contract and integration tests.
+- `mcps/`: upstream MCP launch instructions and source/license status. The upstream packages are referenced, not silently represented as locally vendored code.
+- `docs/apis/`: official provider documentation, research notes and explicit route-coverage status.
+- `doc2mcpFactory/`: OpenAPI 3.x route descriptor factory, basic fail-closed input validation, injected REST transport and manifest CLI.
+- `tests/`: deterministic unit and transport-integration tests. Synthetic fixtures are not provider-verified contracts.
 
 ## Provider inventory
 
-See [API inventory](docs/apis/README.md). Current targets from the project brief: Asaas, Efí, Pagar.me, Mercado Pago, PagBank, InfinitePay, Cora, BTG Pactual, and Meta WhatsApp Cloud API.
+See [API inventory](docs/apis/README.md), [route coverage](docs/apis/route-coverage.md) and [MCP upstream setup](mcps/UPSTREAMS.md).
 
 ## Safety and correctness
 
 - Use sandbox credentials and deterministic mocks in CI; never create real charges in tests.
 - Never commit credentials, certificates, private keys, access tokens or customer/payment data.
-- Verify webhook signatures when the provider supports them and process events idempotently.
+- Verify webhook signatures when supported and process events idempotently.
 - A redirect/client response is not proof of payment; confirm via authenticated provider API/webhook.
 - Do not claim route coverage until each route has a documented contract and test.
-- MCP availability means a server was found; it does not automatically mean its code is safe to vendor or that it covers the required payment operations.
+- A found MCP is not automatically safe, license-compatible, or complete for payment operations.
 
 ## Development
 
@@ -31,4 +31,11 @@ npm test
 npm run test:coverage
 ```
 
-The initial implementation focuses on REST contracts. Live provider tests are opt-in and must use sandbox credentials.
+Generate a manifest from an official OpenAPI JSON document:
+
+```sh
+node doc2mcpFactory/cli.js ./path/to/openapi.json --manifest
+node doc2mcpFactory/cli.js ./path/to/openapi.json --tools
+```
+
+The CLI currently accepts parsed OpenAPI 3.x JSON only; it does not download provider specs or parse YAML. Route coverage remains zero verified provider contracts until the official specs are added and tested.
