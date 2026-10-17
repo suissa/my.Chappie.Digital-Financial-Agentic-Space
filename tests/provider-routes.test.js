@@ -18,7 +18,8 @@ const fixture = {
         operationId: 'getPayment',
         parameters: [
           { name: 'paymentId', in: 'path', required: true, schema: { type: 'string', minLength: 1 } },
-          { name: 'expand', in: 'query', required: false, schema: { type: 'string' } }
+          { name: 'expand', in: 'query', required: false, schema: { type: 'string', minLength: 2 } },
+          { name: 'X-Request-Id', in: 'header', required: false, schema: { type: 'string', minLength: 3 } }
         ],
         responses: { '200': { description: 'Found' }, '404': { description: 'Not found' } }
       }
@@ -80,7 +81,7 @@ test('REST executor substitutes and encodes path parameters and query values', a
     operation,
     pathParams: { paymentId: 'id/with space' },
     query: { expand: 'customer details' },
-    headers: { authorization: 'Bearer sandbox-token' },
+    headers: { authorization: 'Bearer sandbox-token', 'X-Request-Id': 'req-123' },
     fetchImpl: async (url, init) => {
       captured = { url: String(url), init };
       return new Response(JSON.stringify({ id: 'id/with space', status: 'pending' }), {
@@ -91,9 +92,24 @@ test('REST executor substitutes and encodes path parameters and query values', a
   assert.equal(captured.url, 'https://sandbox.example/v1/payments/id%2Fwith%20space?expand=customer+details');
   assert.equal(captured.init.method, 'GET');
   assert.equal(captured.init.headers.get('authorization'), 'Bearer sandbox-token');
+  assert.equal(captured.init.headers.get('x-request-id'), 'req-123');
   assert.equal(result.status, 200);
   assert.equal(result.ok, true);
   assert.equal(result.body.status, 'pending');
+});
+
+test('REST executor validates documented query and header parameters before transport', async () => {
+  const operation = createToolsFromOpenApi(fixture).find(item => item.method === 'GET');
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; return new Response('{}', { status: 200 }); };
+  await assert.rejects(
+    executeRestOperation({
+      baseUrl: 'https://sandbox.example/v1', operation,
+      pathParams: { paymentId: 'p1' }, query: { expand: 'x' }, fetchImpl
+    }),
+    /String too short/
+  );
+  assert.equal(calls, 0);
 });
 
 test('REST executor validates JSON body before transport and serializes valid body', async () => {
