@@ -1,0 +1,14 @@
+{
+  "openapi":"3.0.3",
+  "info":{"title":"Efí Payment Links","version":"2026-10-17","description":"Contract distilled from the official Efí Link de Pagamento API reference."},
+  "externalDocs":{"url":"https://dev.efipay.com.br/docs/api-cobrancas/link-de-pagamento/"},
+  "servers":[{"url":"https://api.efi.com.br"}],
+  "paths":{
+    "/v1/charge/one-step/link":{
+      "post":{"operationId":"efiCreateChargeWithLink","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["items"],"properties":{"items":{"type":"array","minItems":1,"items":{"type":"object","required":["amount","name","value"],"properties":{"amount":{"type":"integer","minimum":1},"name":{"type":"string"},"value":{"type":"integer","minimum":1}},"additionalProperties":false}},"metadata":{"type":"object"},"customer":{"type":"object"},"shippings":{"type":"array"},"settings":{"type":"object"}},"additionalProperties":false}}}},"responses":{"200":{"description":"Success"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"}}}
+    },
+    "/v1/charge/{id}/link":{
+      "post":{"operationId":"efiCreateLinkFromCharge","parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","minLength":1}}],"requestBody":{"content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","maxLength":80},"payment_method":{"type":"string","enum":["banking_billet","credit_card","all"]},"expire_at":{"type":"string"},"request_delivery_address":{"type":"boolean"},"billet_discount":{"type":"integer","minimum":0},"card_discount":{"type":"integer","minimum":0}},"additionalProperties":false}}}},"responses":{"200":{"description":"Success"},"400":{"description":"Bad Request"},"401":{"description":"Unauthorized"}}}
+    }
+  }
+}
