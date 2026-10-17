@@ -16,7 +16,8 @@ const spec = {
         } } } },
         responses: { '201': { description: 'Created' }, '400': { description: 'Invalid input' } }
       },
-      get: { operationId: 'listPayments', responses: { '200': { description: 'OK' } } }
+      get: { operationId: 'listPayments', responses: { '200': { description: 'OK' } }
+      }
     }
   }
 };
@@ -36,6 +37,7 @@ test('rejects non-OpenAPI 3 and missing paths', () => {
 test('rejects duplicate operation IDs after normalization', () => {
   const duplicate = structuredClone(spec);
   duplicate.paths['/other'] = { get: { operationId: 'create-payment' } };
+  duplicate.paths['/third'] = { get: { operationId: 'create_payment' } };
   assert.throws(() => createToolsFromOpenApi(duplicate), /Duplicate MCP tool name/);
 });
 
