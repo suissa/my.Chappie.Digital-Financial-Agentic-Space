@@ -80,7 +80,7 @@ test('executes a documented REST operation using an injected fake transport', as
   assert.equal(result.status, 201);
   assert.equal(result.body.status, 'pending');
   assert.equal(seen[0].method, 'POST');
-  assert.equal(seen[0].url, 'https://sandbox.example/api/payments');
+  assert.equal(seen[0].url, 'https://sandbox.example/payments');
   assert.deepEqual(seen[0].body, { amount: 10, currency: 'BRL' });
 });
 
