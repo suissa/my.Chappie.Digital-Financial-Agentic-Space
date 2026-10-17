@@ -4,34 +4,38 @@ Last reviewed: 2026-10-17.
 
 ## Status semantics
 
-- **Documented**: exact method, path, auth and request/response contract have been captured from an official provider specification.
-- **Tested**: the exact documented contract has automated request/response tests, using provider sandbox or deterministic fixtures.
-- **Live sandbox-tested**: a credentialed test against the provider's sandbox completed without creating a real charge.
-- **Fixture-only**: a synthetic contract exercises the generic factory; it is not evidence that a provider route exists.
+- **Documented**: exact method/path and the captured request/response contract are grounded in an official provider reference.
+- **Contract-tested**: the captured contract is loaded by automated tests and executed against a deterministic injected REST transport.
+- **Live sandbox-tested**: a credentialed request against the provider sandbox completed without creating a real charge. This has NOT been performed by CI.
+- **Gated**: the provider documentation was found, but the indexed source did not expose enough exact route/schema information to safely invent a contract.
 
 ## Current state
 
-| Provider | Official source | Exact route contracts in this repo | Automated provider-contract tests |
-|---|---|---:|---|
-| Asaas | https://docs.asaas.com/reference/criar-um-link-de-pagamentos | 0 verified | Not yet |
-| Efí | https://dev.efipay.com.br/docs/api-cobrancas/link-de-pagamento/ | 0 verified | Not yet |
-| Pagar.me | https://docs.pagar.me/reference/criar-link | 0 verified | Not yet |
-| Mercado Pago | https://www.mercadopago.com.br/developers/pt/docs/getting-started | 0 verified | Not yet |
-| PagBank | https://developer.pagbank.com.br/v1/reference/introducao | 0 verified | Not yet |
-| InfinitePay | https://www.infinitepay.io/desenvolvedores | 0 verified | Not yet |
-| Cora | https://developers.cora.com.br/ | 0 verified | Not yet |
-| BTG Pactual | https://empresas.btgpactual.com/developers/ | 0 verified | Not yet |
-| Meta WhatsApp Cloud API | https://developers.facebook.com/docs/whatsapp/cloud-api/ | 0 verified | Not yet |
+| Provider | Official source | Captured routes | Contract tests | Live sandbox |
+|---|---|---:|---|---|
+| Asaas | https://docs.asaas.com/reference/criar-um-link-de-pagamentos | 5 | Yes | No |
+| Efí | https://dev.efipay.com.br/docs/api-cobrancas/link-de-pagamento/ | 2 | Yes | No |
+| Pagar.me V5 | https://docs.pagar.me/reference/criar-link | 3 | Yes | No |
+| Mercado Pago Preferences | https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-pro-preferences/overview | 4 | Yes | No |
+| PagBank Checkout | https://developer.pagbank.com.br/reference/criar-checkout | 2 | Yes | No |
+| Cora Invoices | https://developers.cora.com.br/reference/emiss%C3%A3o-de-boleto-registrado-v2 | 2 | Yes | No |
+| BTG Pactual | https://developers.empresas.btgpactual.com/docs/starting-doc/Produtos%20de%20API/Conta%20PJ/Cobran%C3%A7as/link-de-pagamento-1 | 0 | Gated | No |
+| Meta WhatsApp Cloud API | https://developers.facebook.com/docs/whatsapp/cloud-api/ | 1 | Yes | No |
+| InfinitePay | https://www.infinitepay.io/desenvolvedores | 0 | Gated | No |
 
-The test suite currently verifies generic OpenAPI descriptor generation, fail-closed input validation and the injected HTTP transport using a synthetic fixture. It intentionally does **not** claim that invented/sample routes are verified provider endpoints. The next step is to capture the official OpenAPI/schema for each provider, or manually transcribe each operation from the official reference with source links and a review date, then generate route-specific tests from those contracts.
+## Important distinction
+
+The captured JSON files are **contracts distilled from the official documentation**, not downloaded vendor OpenAPI files. Each file contains an `externalDocs` source URL. Where the official page did not expose enough information to determine an exact route safely (BTG and InfinitePay in this snapshot), no route was fabricated.
+
+The automated provider suite uses those captured contracts with an injected fake HTTP transport. It validates that every captured method/path can be generated and dispatched, and that invalid required bodies are rejected before network transport. It does not prove provider availability or successful authentication.
 
 ## Release gate
 
-Do not mark a provider operation supported until:
+Before production support for an operation:
 1. The method and path are grounded in an official source.
-2. Required path/query/header/body fields and response status codes are represented.
+2. Required path/query/header/body fields and documented response status codes are represented.
 3. Invalid payloads are rejected before transport.
-4. Success and representative provider error responses are tested.
-5. Authentication secrets are redacted from logs and never committed.
-6. Webhook signature and idempotency behavior are covered when applicable.
-7. Any sandbox test is explicitly distinguished from deterministic mock coverage.
+4. Success and representative provider errors are tested.
+5. Credentials are external to the repository and never appear in fixtures/logs.
+6. Webhook signature and idempotency behavior are covered where applicable.
+7. A sandbox run is separately recorded when credentials are available.
