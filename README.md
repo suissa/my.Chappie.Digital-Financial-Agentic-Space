@@ -11,16 +11,17 @@ WhatsApp-first payment integrations for My.Chappie.Digital. The customer receive
 
 ## Provider inventory
 
-See [API inventory](docs/apis/README.md), [route coverage](docs/apis/route-coverage.md) and [MCP upstream setup](mcps/UPSTREAMS.md).
+See [API inventory](docs/apis/README.md), [route coverage](docs/apis/route-coverage.md), [webhook security](docs/apis/webhook-security.md) and [MCP upstream setup](mcps/UPSTREAMS.md).
 
 ## Safety and correctness
 
 - Use sandbox credentials and deterministic mocks in CI; never create real charges in tests.
 - Never commit credentials, certificates, private keys, access tokens or customer/payment data.
-- Verify webhook signatures when supported and process events idempotently.
+- Verify webhook signatures using the exact provider-specific contract and process events idempotently through a durable, atomic store.
 - A redirect/client response is not proof of payment; confirm via authenticated provider API/webhook.
 - Do not claim route coverage until each route has a documented contract and test.
 - A found MCP is not automatically safe, license-compatible, or complete for payment operations.
+- Generic webhook security helpers are primitives, not proof of provider compatibility. Signature format, freshness windows and replay rules must be implemented per provider.
 
 ## Development
 
@@ -38,4 +39,4 @@ node doc2mcpFactory/cli.js ./path/to/openapi.json --manifest
 node doc2mcpFactory/cli.js ./path/to/openapi.json --tools
 ```
 
-The CLI currently accepts parsed OpenAPI 3.x JSON only; it does not download provider specs or parse YAML. Route coverage remains zero verified provider contracts until the official specs are added and tested.
+The CLI currently accepts parsed OpenAPI 3.x JSON only; it does not download provider specs or parse YAML. Route coverage remains limited to the captured contracts listed in [route coverage](docs/apis/route-coverage.md); these are distilled from official documentation and are not vendor-published OpenAPI files. Live sandbox verification has not been performed by CI.
